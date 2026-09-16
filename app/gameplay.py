@@ -4,7 +4,6 @@ from time import time
 from app.generate_response import computer_choice
 
 def init_gameplay(window_name):
-    # Pre-load images for the computer's choice
     images = {}
     for choice_str in ["Pedra", "Papel", "Tesoura", "Ban"]:
         img_path = f"images/{choice_str.lower()}.jpg"
@@ -69,11 +68,9 @@ def get_winner(user_g, comp_c):
 def draw_and_update(state, frame, gesture, ban_verify):
     h, w, _ = frame.shape
     
-    # Atualiza botão
     btn_x1, btn_y1, btn_x2, btn_y2 = w//2 - 100, h - 80, w//2 + 100, h - 20
     state["btn_rect"] = (btn_x1, btn_y1, btn_x2, btn_y2)
     
-    # Desenha botão
     cv2.rectangle(frame, (btn_x1, btn_y1), (btn_x2, btn_y2), (0, 200, 0), -1)
     cv2.rectangle(frame, (btn_x1, btn_y1), (btn_x2, btn_y2), (0, 255, 0), 3)
     text_size = cv2.getTextSize("JOGAR", cv2.FONT_HERSHEY_SIMPLEX, 1.2, 3)[0]
@@ -81,7 +78,6 @@ def draw_and_update(state, frame, gesture, ban_verify):
     ty = btn_y1 + (btn_y2 - btn_y1 + text_size[1]) // 2
     cv2.putText(frame, "JOGAR", (tx, ty), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 3)
 
-    # Placar permanente em cima do botão
     font_scale = 0.9
     thickness = 2
     t1 = f"Voce: {state['score_user']} "
@@ -94,13 +90,12 @@ def draw_and_update(state, frame, gesture, ban_verify):
     
     total_w = s1[0] + s2[0] + s3[0]
     start_x = w // 2 - total_w // 2
-    text_y = btn_y1 - 20 # acima do botao
+    text_y = btn_y1 - 20 
     
     cv2.putText(frame, t1, (start_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 0, 0), thickness)
     cv2.putText(frame, t2, (start_x + s1[0], text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), thickness)
     cv2.putText(frame, t3, (start_x + s1[0] + s2[0], text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255), thickness)
 
-    # Se tomou ban, encerra a partida a favor do PC
     if ban_verify:
         state["score_comp"] += 1
         state["is_counting_down"] = False
@@ -124,7 +119,6 @@ def draw_and_update(state, frame, gesture, ban_verify):
             res = get_winner(state["user_choice_locked"], state["computer_choice"])
             state["result"] = res
             
-            # Atualiza placar
             if "Voce" in res:
                 state["score_user"] += 1
             elif "Computador" in res:
@@ -138,7 +132,6 @@ def draw_and_update(state, frame, gesture, ban_verify):
             cv2.putText(frame, num_text, (nx, ny), cv2.FONT_HERSHEY_SIMPLEX, 6, (0, 0, 0), 20)
             cv2.putText(frame, num_text, (nx, ny), cv2.FONT_HERSHEY_SIMPLEX, 6, (0, 165, 255), 10)
 
-    # Exibe informações apenas se já tiver ocorrido ao menos 1 jogada e não estiver contando
     if state["game_played"] and not state["is_counting_down"]:
         
         comp_choice = state["computer_choice"]
@@ -150,7 +143,6 @@ def draw_and_update(state, frame, gesture, ban_verify):
             frame[iy:iy+ih, ix:ix+iw] = img_to_draw
             cv2.rectangle(frame, (ix, iy), (ix+iw, iy+ih), (0, 255, 0), 2)
             
-            # Texto da escolha centralizado abaixo da imagem
             comp_txt = f"Computador: {comp_choice}"
             t_size = cv2.getTextSize(comp_txt, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
             tx = w//2 - t_size[0]//2
@@ -159,21 +151,21 @@ def draw_and_update(state, frame, gesture, ban_verify):
         else:
             cv2.putText(frame, f"Computador: {comp_choice}", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 3)
 
-        # Exibe resultado (Ganhador) um pouco acima do placar
+        
         res = state["result"]
         
         text1 = "Ganhador: " if res not in ["Invalido", "Empate"] else "Resultado: "
-        color1 = (0, 0, 255) if "Ban" in res else (0, 255, 255) # Vermelho se Ban, senao Amarelo
+        color1 = (0, 0, 255) if "Ban" in res else (0, 255, 255) 
         
         text2 = res
-        color2 = (0, 255, 255) # Padrao amarelo
+        color2 = (0, 255, 255) 
         if "Voce" in res:
-            color2 = (255, 0, 0) # Azul
+            color2 = (255, 0, 0) 
         elif "Computador" in res:
-            color2 = (0, 0, 255) # Vermelho
+            color2 = (0, 0, 255) 
             
         if "Ban" in res:
-            color2 = (0, 0, 255) # Se ban, tudo vermelho
+            color2 = (0, 0, 255) 
             
         s1 = cv2.getTextSize(text1, cv2.FONT_HERSHEY_SIMPLEX, 1.2, 3)[0]
         s2 = cv2.getTextSize(text2, cv2.FONT_HERSHEY_SIMPLEX, 1.2, 3)[0]
