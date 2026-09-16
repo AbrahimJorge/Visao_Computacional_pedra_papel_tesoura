@@ -28,7 +28,9 @@ def main(cap):
 
         gesture = draw_point_lines(detection_result, frame)
         ban_verify = ban(cap, gesture, frame, detector, ban_time)
-        draw_and_update(game_state, frame, gesture, ban_verify)
+        status = draw_and_update(game_state, frame, gesture, ban_verify)
+        if status == "BREAK":
+            break
 
         if ban_verify == True:
             ban_time += 5

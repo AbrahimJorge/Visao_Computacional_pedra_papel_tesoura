@@ -1,11 +1,38 @@
 import cv2
 import os
+import pygame
 from time import time
 from app.generate_response import computer_choice
 
+# Inicializa o mixer do pygame uma única vez
+try:
+    pygame.mixer.init()
+except Exception as e:
+    print(f"Erro ao inicializar o pygame mixer: {e}")
+
+def mouse_click(event, x, y, flags, param):
+    state = param
+    if event == cv2.EVENT_LBUTTONDOWN:
+        x1, y1, x2, y2 = state["btn_rect"]
+        if x1 <= x <= x2 and y1 <= y <= y2:
+            if not state["is_counting_down"]:
+                state["is_counting_down"] = True
+                state["countdown_start"] = time()
+                state["computer_choice"] = "Pensando..."
+                state["user_choice_locked"] = "Nenhuma"
+                state["result"] = ""
+                state["game_played"] = False
+                
+                # Toca o áudio de contagem exatamente UMA VEZ ao clicar no botão, com o corte especificado
+                try:
+                    pygame.mixer.music.load("sons/contador.mp3")
+                    pygame.mixer.music.play(start=156)
+                except Exception as e:
+                    print(f"Erro ao tocar som: {e}")
+
 def init_gameplay(window_name):
     images = {}
-    for choice_str in ["Pedra", "Papel", "Tesoura", "Ban"]:
+    for choice_str in ["Pedra", "Papel", "Tesoura", "Bomba", "Ban"]:
         img_path = f"images/{choice_str.lower()}.jpg"
         if not os.path.exists(img_path):
             img_path = f"images/{choice_str.lower()}.png"
@@ -32,27 +59,32 @@ def init_gameplay(window_name):
         "score_comp": 0
     }
 
-    def mouse_click(event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            x1, y1, x2, y2 = state["btn_rect"]
-            if x1 <= x <= x2 and y1 <= y <= y2:
-                if not state["is_counting_down"]:
-                    state["is_counting_down"] = True
-                    state["countdown_start"] = time()
-                    state["computer_choice"] = "Pensando..."
-                    state["user_choice_locked"] = "Nenhuma"
-                    state["result"] = ""
-                    state["game_played"] = False
-
-    cv2.setMouseCallback(window_name, mouse_click)
+    # Passa o 'state' para o callback do mouse através do parâmetro 'param'
+    cv2.setMouseCallback(window_name, mouse_click, param=state)
     return state
 
 def get_winner(user_g, comp_c):
+    # Para o som da contagem assim que sai o resultado, independente de quem ganhou
+    try:
+        pygame.mixer.music.stop()
+    except Exception as e:
+        print(f"Erro ao parar o som: {e}")
+
     if user_g == "" or user_g == "Nenhuma" or user_g == "Nenhuma mao":
+        try:
+            pygame.mixer.music.load("sons/derrota.mp3")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Erro ao tocar som: {e}")
         return "Computador (Nao jogou)"
         
     valid_gestures = ["Pedra", "Papel", "Tesoura"]
     if user_g not in valid_gestures:
+        try:
+            pygame.mixer.music.load("sons/derrota.mp3")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Erro ao tocar som: {e}")
         return "Invalido"
         
     if user_g == comp_c:
@@ -61,8 +93,22 @@ def get_winner(user_g, comp_c):
     if (user_g == "Pedra" and comp_c == "Tesoura") or \
        (user_g == "Papel" and comp_c == "Pedra") or \
        (user_g == "Tesoura" and comp_c == "Papel"):
+        try:
+            pygame.mixer.music.load("sons/vitoria.mp3")
+            pygame.mixer.music.play()
+        except Exception as e:
+            print(f"Erro ao tocar som: {e}")
+
         return "Voce"
-        
+
+    if comp_c == "Bomba":
+        return "Computador Explodiu!!"
+
+    try:
+        pygame.mixer.music.load("sons/derrota.mp3")
+        pygame.mixer.music.play()
+    except Exception as e:
+        print(f"Erro ao tocar som: {e}")
     return "Computador"
 
 def draw_and_update(state, frame, gesture, ban_verify):
@@ -176,3 +222,29 @@ def draw_and_update(state, frame, gesture, ban_verify):
         
         cv2.putText(frame, text1, (start_x, text_y_ganhador), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color1, 3)
         cv2.putText(frame, text2, (start_x + s1[0], text_y_ganhador), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color2, 3)
+        
+        if state["computer_choice"] == "Bomba":
+            cv2.imshow(state["window_name"], frame)
+            cv2.waitKey(1500)
+            
+            bomba_path = "images/explosão.gif"
+            if os.path.exists(bomba_path):
+                bomba_full = cv2.imread(bomba_path)
+                bomba_full = cv2.resize(bomba_full, (w, h))
+                frame[:] = bomba_full
+            else:
+                frame[:] = (0, 0, 255)
+                
+            text_exp = "Computador explodiu!!"
+            try:
+                pygame.mixer.music.load("sons/som_bomba.mp3")
+                pygame.mixer.music.play()
+            except Exception as e:
+                print(f"Erro ao tocar som: {e}")
+            s_exp = cv2.getTextSize(text_exp, cv2.FONT_HERSHEY_SIMPLEX, 1.8, 5)[0]
+            cv2.putText(frame, text_exp, (w//2 - s_exp[0]//2, h//2), cv2.FONT_HERSHEY_SIMPLEX, 1.8, (0, 0, 255), 5)
+            
+            cv2.imshow(state["window_name"], frame)
+            cv2.waitKey(1500)
+            
+            return "BREAK"

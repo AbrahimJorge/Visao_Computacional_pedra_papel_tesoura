@@ -1,4 +1,6 @@
 import cv2
+import os
+import pygame
 
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -46,9 +48,15 @@ def draw_point_lines(detection_result, frame):
 
 def ban(cap, gesture, frame, detector, ban_time):
         if gesture == 'Ban':
-            import os
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             base_gray_bgr = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+
+            try:
+                pygame.mixer.init()
+                pygame.mixer.music.load("sons/ban.mp3")
+                pygame.mixer.music.play()
+            except Exception as e:
+                print(f"Erro ao tocar som: {e}")
 
             os.makedirs("screenshots", exist_ok=True)
             ban_count = 1
